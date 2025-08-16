@@ -8,5 +8,5 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 # Import and run the main dashboard
 from dashboard import main
 
-if __name__ == "__main__":
-    main()
+# Streamlit Cloudでは直接実行
+main()
