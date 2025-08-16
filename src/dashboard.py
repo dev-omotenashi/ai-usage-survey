@@ -779,7 +779,7 @@ def style_change_column(df):
             return 'color: #7f7f7f'  # グレー
     
     # スタイルを適用
-    styled = df.style.applymap(color_change, subset=['5月→7月の変化'])
+    styled = df.style.map(color_change, subset=['5月→7月の変化'])
     return styled
 
 

@@ -1,9 +1,12 @@
 """
 AI活用アンケート分析ダッシュボード設定ファイル
 """
+import os
 
-DATA_PATH = 'data/AI活用アンケートデータ.tsv'
-PROCESSED_DATA_PATH = 'data/processed/'
+# プロジェクトルートディレクトリを動的に取得
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_PATH = os.path.join(PROJECT_ROOT, 'data', 'AI活用アンケートデータ.tsv')
+PROCESSED_DATA_PATH = os.path.join(PROJECT_ROOT, 'data', 'processed')
 
 TEAM_NAMES = {
     'エンジニアリングチーム': 'Engineering',
