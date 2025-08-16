@@ -10,7 +10,13 @@
       "Bash(streamlit run:*)",
       "Bash(gh repo create:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gh auth:*)",
+      "Bash(git remote add:*)",
+      "Bash(pkill:*)",
+      "Bash(streamlit cache:*)",
+      "Bash(rg:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": []
   }

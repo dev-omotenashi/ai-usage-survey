@@ -681,6 +681,108 @@ def create_metrics_cards(metrics, process_label):
             )
 
 
+def create_monthly_comparison_table(monthly_data, data_type, process_type=None):
+    """月別比較表を作成"""
+    if data_type == 'challenges':
+        if process_type == 'upstream':
+            # 上流工程の課題データを抽出
+            comparison_data = {}
+            for month, data in monthly_data.items():
+                if 'upstream_challenges' in data:
+                    comparison_data[month] = data['upstream_challenges']
+                else:
+                    comparison_data[month] = pd.Series(dtype=int)
+        elif process_type == 'development':
+            # 開発工程の課題データを抽出
+            comparison_data = {}
+            for month, data in monthly_data.items():
+                if 'development_challenges' in data:
+                    comparison_data[month] = data['development_challenges']
+                else:
+                    comparison_data[month] = pd.Series(dtype=int)
+        else:
+            return None
+    elif data_type == 'training':
+        # トレーニングニーズデータを抽出
+        comparison_data = monthly_data
+    else:
+        return None
+    
+    if not comparison_data:
+        return None
+    
+    # 全ての項目を収集
+    all_items = set()
+    for month_data in comparison_data.values():
+        if hasattr(month_data, 'index'):
+            all_items.update(month_data.index)
+    
+    if not all_items:
+        return None
+    
+    # 月別比較表を作成
+    months = ['2025年5月', '2025年6月', '2025年7月']
+    result_data = []
+    
+    for item in sorted(all_items):
+        row = {'項目': item}
+        for month in months:
+            if month in comparison_data and hasattr(comparison_data[month], 'get'):
+                row[month] = comparison_data[month].get(item, 0)
+            else:
+                row[month] = 0
+        
+        # 5月→7月の変化を計算
+        may_count = row['2025年5月']
+        july_count = row['2025年7月']
+        
+        if may_count == 0 and july_count == 0:
+            change = "変化なし"
+        elif may_count == 0:
+            change = f"新規 (+{july_count})"
+        elif july_count == 0:
+            change = f"解消 (-{may_count})"
+        else:
+            diff = july_count - may_count
+            if diff > 0:
+                change = f"増加 (+{diff})"
+            elif diff < 0:
+                change = f"減少 ({diff})"
+            else:
+                change = "変化なし"
+        
+        row['5月→7月の変化'] = change
+        result_data.append(row)
+    
+    if not result_data:
+        return None
+    
+    # DataFrameを作成して7月の件数で降順ソート
+    df = pd.DataFrame(result_data)
+    df = df.sort_values('2025年7月', ascending=False)
+    
+    return df
+
+
+def style_change_column(df):
+    """変化列に色付けスタイルを適用"""
+    def color_change(val):
+        if "新規" in str(val):
+            return 'color: #1f77b4; font-weight: bold'  # 青
+        elif "増加" in str(val):
+            return 'color: #ff7f0e; font-weight: bold'  # オレンジ
+        elif "解消" in str(val):
+            return 'color: #2ca02c; font-weight: bold'  # 緑
+        elif "減少" in str(val):
+            return 'color: #d62728; font-weight: bold'  # 赤
+        else:
+            return 'color: #7f7f7f'  # グレー
+    
+    # スタイルを適用
+    styled = df.style.applymap(color_change, subset=['5月→7月の変化'])
+    return styled
+
+
 def create_wordcloud(text_list):
     """ワードクラウドを作成"""
     if not text_list:
@@ -939,17 +1041,19 @@ def main():
         st.header("利用頻度・生産性分析")
         
         # 上流工程のセクション
+        st.markdown("""
+        <div style="
+            background-color: #e6f3ff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #4682b4;
+        ">
+        <h3 style="margin: 0; color: #4682b4;">上流工程（ディレクターチーム）</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
         with st.container():
-            st.markdown("""
-            <div style="
-                background-color: #f0f8ff;
-                padding: 20px;
-                border-radius: 10px;
-                margin: 30px 0;
-                border-left: 5px solid #4682b4;
-            ">
-            <h3 style="margin-top: 0; color: #4682b4;">上流工程（ディレクターチーム）</h3>
-            """, unsafe_allow_html=True)
             
             if 'upstream_frequency' in processed_data:
                 # 指標カードを表示
@@ -1099,20 +1203,21 @@ def main():
                 else:
                     st.info(f"{get_display_name(selected_tool)}のデータが不足しています。")
             
-            st.markdown("</div>", unsafe_allow_html=True)
         
         # 開発工程のセクション
+        st.markdown("""
+        <div style="
+            background-color: #f0fff0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #32cd32;
+        ">
+        <h3 style="margin: 0; color: #32cd32;">開発工程（エンジニアリングチーム）</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
         with st.container():
-            st.markdown("""
-            <div style="
-                background-color: #f0fff0;
-                padding: 20px;
-                border-radius: 10px;
-                margin: 30px 0;
-                border-left: 5px solid #32cd32;
-            ">
-            <h3 style="margin-top: 0; color: #32cd32;">開発工程（エンジニアリングチーム）</h3>
-            """, unsafe_allow_html=True)
             if 'development_frequency' in processed_data:
                 # 指標カードを表示
                 development_metrics = calculate_tool_metrics(
@@ -1261,7 +1366,6 @@ def main():
                     else:
                         st.info(f"{get_display_name(selected_dev_tool)}のデータが不足しています。")
             
-            st.markdown("</div>", unsafe_allow_html=True)
     
     with tab3:
         st.header("時間・労力削減効果")
@@ -1409,63 +1513,86 @@ def main():
     with tab4:
         st.header("課題とフィードバック")
         
-        col1, col2 = st.columns(2)
+        # 上流工程の課題
+        st.markdown("""
+        <div style="
+            background-color: #e6f3ff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #4682b4;
+        ">
+        <h3 style="margin: 0; color: #4682b4;">上流工程での課題（ディレクターチーム）</h3>
+        </div>
+        """, unsafe_allow_html=True)
         
-        with col1:
-            st.subheader("上流工程での課題")
-            if 'upstream_challenges' in processed_data:
-                challenges = processed_data['upstream_challenges']
-                if len(challenges) > 0:
-                    fig = px.bar(
-                        x=challenges.values[:10],
-                        y=challenges.index[:10],
-                        orientation='h',
-                        title="主な課題（上位10件）"
-                    )
-                    fig.update_layout(
-                        xaxis_title="回答数",
-                        yaxis_title="課題",
-                        height=400,
-                        margin=dict(l=300)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            st.subheader("開発工程での課題")
-            if 'development_challenges' in processed_data:
-                challenges = processed_data['development_challenges']
-                if len(challenges) > 0:
-                    fig = px.bar(
-                        x=challenges.values[:10],
-                        y=challenges.index[:10],
-                        orientation='h',
-                        title="主な課題（上位10件）"
-                    )
-                    fig.update_layout(
-                        xaxis_title="回答数",
-                        yaxis_title="課題",
-                        height=400,
-                        margin=dict(l=300)
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-        
-        # フィードバックのワードクラウド
-        st.subheader("フィードバック・意見のワードクラウド")
-        if 'feedback' in processed_data and processed_data['feedback']:
-            wordcloud_fig = create_wordcloud(processed_data['feedback'])
-            if wordcloud_fig:
-                st.pyplot(wordcloud_fig)
+        if 'monthly_challenges' in processed_data:
+            monthly_challenges = processed_data['monthly_challenges']
+            
+            # 月別変化表を作成
+            upstream_table = create_monthly_comparison_table(monthly_challenges, 'challenges', 'upstream')
+            if upstream_table is not None and not upstream_table.empty:
+                st.markdown("**上流工程の課題（月別変化表）:**")
+                styled_table = style_change_column(upstream_table)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(upstream_table) * 35 + 40)
             else:
-                st.info("ワードクラウドを生成するための十分なテキストがありません。")
+                st.info("上流工程の課題データがありません。")
+        else:
+            st.info("上流工程の課題データがありません。")
         
-        # 具体的なフィードバックの表示
-        st.subheader("具体的なフィードバック（抜粋）")
-        feedback_col = 'AIを活用した開発プロセス全体に関して、その他何か意見や要望があれば自由にご記入ください。'
-        if feedback_col in df.columns:
-            feedback_data = df[feedback_col].dropna()
-            if len(feedback_data) > 0:
-                for i, feedback in enumerate(feedback_data.head(5)):
-                    st.text_area(f"フィードバック {i+1}", feedback, height=100, disabled=True)
+        # 開発工程の課題
+        st.markdown("""
+        <div style="
+            background-color: #f0fff0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #32cd32;
+        ">
+        <h3 style="margin: 0; color: #32cd32;">開発工程での課題（エンジニアリングチーム）</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if 'monthly_challenges' in processed_data:
+            monthly_challenges = processed_data['monthly_challenges']
+            
+            # 月別変化表を作成
+            development_table = create_monthly_comparison_table(monthly_challenges, 'challenges', 'development')
+            if development_table is not None and not development_table.empty:
+                st.markdown("**開発工程の課題（月別変化表）:**")
+                styled_table = style_change_column(development_table)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(development_table) * 35 + 40)
+            else:
+                st.info("開発工程の課題データがありません。")
+        else:
+            st.info("開発工程の課題データがありません。")
+        
+        # トレーニング・学習ニーズ
+        st.markdown("""
+        <div style="
+            background-color: #fff8e1;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #ff9800;
+        ">
+        <h3 style="margin: 0; color: #ff9800;">トレーニング・学習ニーズ</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if 'monthly_training_needs' in processed_data:
+            monthly_training_needs = processed_data['monthly_training_needs']
+            
+            # 月別変化表を作成
+            training_table = create_monthly_comparison_table(monthly_training_needs, 'training')
+            if training_table is not None and not training_table.empty:
+                st.markdown("**トレーニング・学習ニーズ（月別変化表）:**")
+                styled_table = style_change_column(training_table)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(training_table) * 35 + 40)
+            else:
+                st.info("トレーニング・学習ニーズのデータがありません。")
+        else:
+            st.info("トレーニング・学習ニーズのデータがありません。")
 
 
 if __name__ == "__main__":

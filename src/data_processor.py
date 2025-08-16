@@ -128,8 +128,8 @@ class AIUsageSurveyProcessor:
         self.processed_data['development_time_reduction'] = dev_time
     
     def process_challenges(self):
-        """課題データを処理"""
-        # 上流工程の課題
+        """課題データを処理（月別分析付き）"""
+        # 上流工程の課題（全体）
         upstream_challenges_col = '上流工程でAIツールを活用する上で、どのような課題を感じていますか？（複数選択可）'
         if upstream_challenges_col in self.df.columns:
             challenges = []
@@ -140,7 +140,7 @@ class AIUsageSurveyProcessor:
             challenge_counts = pd.Series(challenges).value_counts()
             self.processed_data['upstream_challenges'] = challenge_counts
         
-        # 開発工程の課題
+        # 開発工程の課題（全体）
         dev_challenges_col = '開発工程でAIツールを活用する上で、どのような課題を感じていますか？（複数選択可）'
         if dev_challenges_col in self.df.columns:
             challenges = []
@@ -150,6 +150,74 @@ class AIUsageSurveyProcessor:
             
             challenge_counts = pd.Series(challenges).value_counts()
             self.processed_data['development_challenges'] = challenge_counts
+        
+        # 月別課題分析
+        self._process_monthly_challenges()
+    
+    def _process_monthly_challenges(self):
+        """月別課題データを処理"""
+        # 上流工程の月別課題
+        upstream_challenges_col = '上流工程でAIツールを活用する上で、どのような課題を感じていますか？（複数選択可）'
+        dev_challenges_col = '開発工程でAIツールを活用する上で、どのような課題を感じていますか？（複数選択可）'
+        
+        monthly_data = {}
+        
+        for month in ['2025年5月', '2025年6月', '2025年7月']:
+            month_df = self.df[self.df['年月'] == month]
+            monthly_data[month] = {}
+            
+            # 上流工程の課題
+            if upstream_challenges_col in self.df.columns:
+                upstream_team_data = month_df[month_df['あなたが所属するチームはどちらですか？'] == 'ディレクターチーム']
+                challenges = []
+                for idx, row in upstream_team_data.iterrows():
+                    if pd.notna(row[upstream_challenges_col]):
+                        challenges.extend([c.strip() for c in str(row[upstream_challenges_col]).split(',')])
+                monthly_data[month]['upstream_challenges'] = pd.Series(challenges).value_counts() if challenges else pd.Series(dtype=int)
+            
+            # 開発工程の課題
+            if dev_challenges_col in self.df.columns:
+                dev_team_data = month_df[month_df['あなたが所属するチームはどちらですか？'] == 'エンジニアリングチーム']
+                challenges = []
+                for idx, row in dev_team_data.iterrows():
+                    if pd.notna(row[dev_challenges_col]):
+                        challenges.extend([c.strip() for c in str(row[dev_challenges_col]).split(',')])
+                monthly_data[month]['development_challenges'] = pd.Series(challenges).value_counts() if challenges else pd.Series(dtype=int)
+        
+        self.processed_data['monthly_challenges'] = monthly_data
+    
+    def process_training_needs(self):
+        """トレーニング・学習ニーズを処理（月別分析付き）"""
+        training_col = 'AIツールをより効果的に活用するために、どのようなトレーニングや情報共有があると役立ちますか？（複数選択可）'
+        if training_col in self.df.columns:
+            training_needs = []
+            for idx, row in self.df.iterrows():
+                if pd.notna(row[training_col]):
+                    training_needs.extend([t.strip() for t in str(row[training_col]).split(',')])
+            
+            training_counts = pd.Series(training_needs).value_counts()
+            self.processed_data['training_needs'] = training_counts
+        
+        # 月別トレーニングニーズ分析
+        self._process_monthly_training_needs()
+    
+    def _process_monthly_training_needs(self):
+        """月別トレーニングニーズを処理"""
+        training_col = 'AIツールをより効果的に活用するために、どのようなトレーニングや情報共有があると役立ちますか？（複数選択可）'
+        
+        monthly_data = {}
+        
+        for month in ['2025年5月', '2025年6月', '2025年7月']:
+            month_df = self.df[self.df['年月'] == month]
+            
+            training_needs = []
+            for idx, row in month_df.iterrows():
+                if pd.notna(row[training_col]):
+                    training_needs.extend([t.strip() for t in str(row[training_col]).split(',')])
+            
+            monthly_data[month] = pd.Series(training_needs).value_counts() if training_needs else pd.Series(dtype=int)
+        
+        self.processed_data['monthly_training_needs'] = monthly_data
     
     def process_text_feedback(self):
         """自由記述のフィードバックを処理"""
@@ -197,6 +265,9 @@ class AIUsageSurveyProcessor:
         
         print("課題データを処理しています...")
         self.process_challenges()
+        
+        print("トレーニング・学習ニーズを処理しています...")
+        self.process_training_needs()
         
         print("フィードバックを処理しています...")
         self.process_text_feedback()

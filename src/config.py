@@ -2,8 +2,8 @@
 AI活用アンケート分析ダッシュボード設定ファイル
 """
 
-DATA_PATH = '../data/AI活用アンケートデータ.tsv'
-PROCESSED_DATA_PATH = '../data/processed/'
+DATA_PATH = 'data/AI活用アンケートデータ.tsv'
+PROCESSED_DATA_PATH = 'data/processed/'
 
 TEAM_NAMES = {
     'エンジニアリングチーム': 'Engineering',
