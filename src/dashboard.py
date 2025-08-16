@@ -23,7 +23,8 @@ def get_display_name(tool_name):
 st.set_page_config(
     page_title="AI活用状況ダッシュボード",
     page_icon="🤖",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 
@@ -818,6 +819,35 @@ def create_wordcloud(text_list):
 
 
 def main():
+    # カスタムCSSで最大幅を拡張
+    st.markdown("""
+    <style>
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+        padding-left: 2rem;
+        padding-right: 2rem;
+        max-width: 95%;
+    }
+    
+    /* データフレームの幅を最大化 */
+    .dataframe-container {
+        width: 100%;
+    }
+    
+    /* タブコンテンツの幅を最大化 */
+    .stTabs [data-baseweb="tab-panel"] {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+    
+    /* サイドバーのデフォルト幅を狭める */
+    section[data-testid="stSidebar"] {
+        width: 280px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.title("🤖 AI活用状況分析ダッシュボード")
     st.markdown("### 3ヶ月間のAIツール利用傾向と効果分析")
     
@@ -1534,7 +1564,7 @@ def main():
             if upstream_table is not None and not upstream_table.empty:
                 st.markdown("**上流工程の課題（月別変化表）:**")
                 styled_table = style_change_column(upstream_table)
-                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(upstream_table) * 35 + 40)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=min(len(upstream_table) * 35 + 40, 600))
             else:
                 st.info("上流工程の課題データがありません。")
         else:
@@ -1561,7 +1591,7 @@ def main():
             if development_table is not None and not development_table.empty:
                 st.markdown("**開発工程の課題（月別変化表）:**")
                 styled_table = style_change_column(development_table)
-                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(development_table) * 35 + 40)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=min(len(development_table) * 35 + 40, 600))
             else:
                 st.info("開発工程の課題データがありません。")
         else:
@@ -1588,7 +1618,7 @@ def main():
             if training_table is not None and not training_table.empty:
                 st.markdown("**トレーニング・学習ニーズ（月別変化表）:**")
                 styled_table = style_change_column(training_table)
-                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=len(training_table) * 35 + 40)
+                st.dataframe(styled_table, use_container_width=True, hide_index=True, height=min(len(training_table) * 35 + 40, 600))
             else:
                 st.info("トレーニング・学習ニーズのデータがありません。")
         else:
