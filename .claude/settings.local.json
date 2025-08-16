@@ -16,7 +16,9 @@
       "Bash(pkill:*)",
       "Bash(streamlit cache:*)",
       "Bash(rg:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }
